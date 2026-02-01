@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import Card from "../components/Card";
+import Card from "../components/SkillCard";
 import Button from "../components/Button";
 
 const games = [
