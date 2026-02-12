@@ -5,7 +5,7 @@ import Landing from "./pages/Landing";
 import GameSelect from "./pages/GameSelect";
 import GamePlay from "./pages/GamePlay";
 import GameResult from "./pages/GameResult";
-
+import Login from "./pages/Login"
 // Parent Pages
 import ParentLogin from "./pages/ParentLogin";
 import ParentDashboard from "./pages/ParentDashboard";
@@ -26,7 +26,7 @@ function App() {
       <Route path="/parent-dashboard" element={<ParentDashboard />} />
       <Route path="/child-progress" element={<ChildProgress />} />
       <Route path="/parent-chatbot" element={<ParentChatbot />} />
-
+      <Route path="/login" element={<Login />} />
       {/* Optional: catch-all 404 route */}
       <Route
         path="*"
