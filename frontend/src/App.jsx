@@ -5,14 +5,19 @@ import Landing from "./pages/Landing";
 import GameSelect from "./pages/GameSelect";
 import GamePlay from "./pages/GamePlay";
 import GameResult from "./pages/GameResult";
-import Login from "./pages/Login"
+import Login from "./pages/Login";
+import CharacterSelection from "./pages/ChooseChar"
 // Parent Pages
 import ParentLogin from "./pages/ParentLogin";
 import ParentDashboard from "./pages/ParentDashboard";
 import ChildProgress from "./pages/ChildProgress";
 import ParentChatbot from "./pages/ParentChatbot";
+
+import CharacterStory from "./pages/StoryPage"
+
 import Signup from "./pages/Signup";
 import DyslexiaScreening from "./pages/DyslexiaScreening";
+
 
 function App() {
   return (
@@ -28,6 +33,8 @@ function App() {
       <Route path="/parent-dashboard" element={<ParentDashboard />} />
       <Route path="/child-progress" element={<ChildProgress />} />
       <Route path="/parent-chatbot" element={<ParentChatbot />} />
+      <Route path="/Choose-Character" element={<CharacterSelection />} />
+      <Route path="/Story-Page" element={<CharacterStory />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/dyslexia-screening" element={<DyslexiaScreening />} />
