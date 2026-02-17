@@ -11,6 +11,7 @@ import ParentLogin from "./pages/ParentLogin";
 import ParentDashboard from "./pages/ParentDashboard";
 import ChildProgress from "./pages/ChildProgress";
 import ParentChatbot from "./pages/ParentChatbot";
+import DyslexiaScreening from "./pages/DyslexiaScreening";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
       <Route path="/child-progress" element={<ChildProgress />} />
       <Route path="/parent-chatbot" element={<ParentChatbot />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/screening" element={<DyslexiaScreening />} />
       {/* Optional: catch-all 404 route */}
       <Route
         path="*"
