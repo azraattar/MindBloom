@@ -1,102 +1,107 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-
-import Navbar from "../components/Navbar";
-import TargetCursor from "../components/TargetCursor";
 import { useRef, useEffect } from "react";
-
+import { useNavigate } from "react-router-dom";
+import { auth, googleProvider } from "../firebase/config";
 import {
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  onAuthStateChanged
+  signInWithPopup
 } from "firebase/auth";
+import { supabase } from "../services/supabaseClient";
+import TargetCursor from "../components/TargetCursor";
 
-import { auth, googleProvider } from "../firebase/config";
+import Navbar from "../components/Navbar";
+import { motion } from "framer-motion";
 
-
-const Login = () => {
-  const navigate = useNavigate();
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const containerRef = useRef(null);
+  const navigate = useNavigate();
 
-      // Redirect if already logged in
-    useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          navigate("/games");
-        }
-      });
-
-      return () => unsubscribe();
-    }, [navigate]);
-
-
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setMousePosition({
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-        });
-      }
-    };
-
-
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
-  // Email/Password Login with Auto-Signup
+  // ✅ EMAIL LOGIN
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/games");
-    } catch (error) {
-      switch (error.code) {
-        case "auth/user-not-found":
-          setError("No account found with this email.");
-          break;
-        case "auth/wrong-password":
-          setError("Incorrect password.");
-          break;
-        case "auth/invalid-email":
-          setError("Invalid email address.");
-          break;
-        default:
-          setError("Login failed. Please try again.");
+      const result = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      const user = result.user;
+
+      // Verify user exists in Supabase
+      const { data, error: fetchError } = await supabase
+        .from("parents")
+        .select("*")
+        .eq("firebase_uid", user.uid)
+        .maybeSingle();
+
+      if (fetchError || !data) {
+        setError("User not found in database.");
+        return;
       }
+
+      navigate("/games");
+    } catch (err) {
+      console.error(err);
+      setError("Invalid email or password.");
     } finally {
       setLoading(false);
     }
   };
 
-
-  // Google Login
+  // ✅ GOOGLE LOGIN
   const handleGoogleLogin = async () => {
     setError("");
     setLoading(true);
+
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      const { data } = await supabase
+        .from("parents")
+        .select("*")
+        .eq("firebase_uid", user.uid)
+        .maybeSingle();
+
+      if (!data) {
+        setError("No account found. Please signup first.");
+        return;
+      }
+
       navigate("/games");
-    } catch (error) {
-      setError("Google login failed. Try again.");
+    } catch (err) {
+      console.error(err);
+      setError("Google login failed.");
     } finally {
       setLoading(false);
     }
   };
+
+
+  const containerRef = useRef(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePosition({
+        x: e.clientX,
+        y: e.clientY,
+      });
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
 
 
   return (
@@ -330,5 +335,3 @@ const Login = () => {
     </div>
   );
 };
-
-export default Login;

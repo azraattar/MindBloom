@@ -283,7 +283,7 @@ const RiskArc = ({ pct = 0 }) => {
                             lineHeight: 1.3,
                             marginBottom: 10
                         })}>
-                            {pct === 0 
+                            {pct === 0
                                 ? "Complete sessions to generate risk profile"
                                 : "Early learning pattern analysis"
                             }

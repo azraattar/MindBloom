@@ -1,101 +1,124 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import Navbar from "../components/Navbar";
-import TargetCursor from "../components/TargetCursor";
-
-import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase/config";
+import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { supabase } from "../services/supabaseClient";
+import TargetCursor from "../components/TargetCursor";
+import Navbar from "../components/Navbar";
+import { motion } from "framer-motion";
+import { useRef, useEffect } from "react";
 
-
-const Signup = () => {
-  const navigate = useNavigate();
+export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const containerRef = useRef(null);
+  const navigate = useNavigate();
 
-  // 🎯 Mouse Gradient Effect (Same as before)
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setMousePosition({
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-        });
-      }
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
-  // 🔐 Auto Redirect if Already Logged In
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        navigate("/games");
-      }
-    });
-
-    return () => unsubscribe();
-  }, [navigate]);
-
-  // 📧 Email Signup
-  const handleSignup = async (e) => {
+  // ✅ EMAIL SIGNUP
+  const handleEmailSignup = async (e) => {
     e.preventDefault();
     setError("");
-
-    if (password !== confirmPassword) {
-      return setError("Passwords do not match.");
-    }
-
-    if (password.length < 6) {
-      return setError("Password must be at least 6 characters.");
-    }
-
     setLoading(true);
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      navigate("/games");
-    } catch (signupError) {
-      switch (signupError.code) {
-        case "auth/email-already-in-use":
-          setError("This email is already registered.");
-          break;
-        case "auth/invalid-email":
-          setError("Invalid email address.");
-          break;
-        case "auth/weak-password":
-          setError("Password is too weak.");
-          break;
-        default:
-          setError("Something went wrong. Please try again.");
+      const result = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      const user = result.user;
+
+      const { error: insertError } = await supabase
+        .from("parents")
+        .insert([
+          {
+            firebase_uid: user.uid,
+            email: user.email,
+            name: name
+          }
+        ])
+        .select();
+
+      if (insertError) {
+        console.error(insertError);
+        setError("Failed to save user data.");
+        return;
       }
+
+      navigate("/games");
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔵 Google Signup
+  // ✅ GOOGLE SIGNUP
   const handleGoogleSignup = async () => {
     setError("");
     setLoading(true);
 
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Check if already exists
+      const { data } = await supabase
+        .from("parents")
+        .select("id")
+        .eq("firebase_uid", user.uid)
+        .maybeSingle();
+
+      if (!data) {
+        const { error: insertError } = await supabase
+          .from("parents")
+          .insert([
+            {
+              firebase_uid: user.uid,
+              email: user.email,
+              name: user.displayName || ""
+            }
+          ])
+          .select();
+
+        if (insertError) {
+          console.error(insertError);
+          setError("Failed to create account.");
+          return;
+        }
+      }
+
       navigate("/games");
-    } catch (error) {
-      setError("Google sign-in failed. Try again.");
+    } catch (err) {
+      console.error(err);
+      setError("Google signup failed.");
     } finally {
       setLoading(false);
     }
   };
+
+  const containerRef = useRef(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePosition({
+        x: e.clientX,
+        y: e.clientY,
+      });
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
+
 
   return (
     <div
@@ -153,7 +176,7 @@ const Signup = () => {
                 </div>
               )}
 
-              <form onSubmit={handleSignup} className="space-y-6">
+              <form onSubmit={handleEmailSignup} className="space-y-6">
 
                 <div>
                   <label className="block text-sm font-bold text-[#22442E] mb-2">
@@ -189,15 +212,7 @@ const Signup = () => {
                   <label className="block text-sm font-bold text-[#22442E] mb-2">
                     Confirm Password
                   </label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-[#D8CFC4] focus:border-[#22442E] focus:outline-none"
-                    placeholder="••••••••"
-                    required
-                    disabled={loading}
-                  />
+          
                 </div>
 
                 <motion.button
@@ -254,5 +269,3 @@ const Signup = () => {
     </div>
   );
 };
-
-export default Signup;
