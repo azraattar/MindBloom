@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import * as THREE from "three";
 
+// Import Google Fonts for fantasy aesthetic
+const fontLink = document.createElement('link');
+fontLink.href = 'https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=Playfair+Display:wght@400;700&display=swap';
+fontLink.rel = 'stylesheet';
+document.head.appendChild(fontLink);
+
 // ─── Full-page Fire Background Canvas ────────────────────────────────────────
 function FireBackground({ intensity }) {
   const canvasRef = useRef(null);
@@ -27,7 +33,6 @@ function FireBackground({ intensity }) {
     class Ember {
       constructor() { this.reset(true); }
       reset(scatter = false) {
-        // Spawn across full bottom width
         this.x = Math.random() * canvas.width;
         this.y = canvas.height + 10;
         this.vx = (Math.random() - 0.5) * 1.2;
@@ -41,7 +46,6 @@ function FireBackground({ intensity }) {
         this.flickerA = 0.07 + Math.random() * 0.13;
         this.flickerOffset = Math.random() * Math.PI * 2;
         if (scatter) {
-          // Pre-spread across screen height at startup
           const skip = Math.random() * this.maxLife * 0.8;
           this.life = skip;
           this.y += this.vy * skip;
@@ -124,7 +128,6 @@ function FireBackground({ intensity }) {
 
         ctx.save();
         ctx.beginPath();
-        // Flame shape: wide base tapering to a tip with slight wobble
         const w = this.width * (1 - this.t * 0.3);
         ctx.moveTo(this.x - w / 2, this.baseY);
         ctx.quadraticCurveTo(
@@ -192,7 +195,6 @@ function FireBackground({ intensity }) {
       }
     }
 
-    // ── Build pools ──────────────────────────────────────────
     const embers  = Array.from({ length: 200 }, () => new Ember());
     const tongues = Array.from({ length: 25  }, () => new FlameTongue());
     const smokes  = Array.from({ length: 30  }, () => new Smoke());
@@ -203,7 +205,6 @@ function FireBackground({ intensity }) {
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Ground fire glow — spans full width at bottom
       const groundGlow = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - 300);
       groundGlow.addColorStop(0,   `rgba(255, 60,  0, ${0.35 * gi})`);
       groundGlow.addColorStop(0.4, `rgba(200, 25,  0, ${0.18 * gi})`);
@@ -211,7 +212,6 @@ function FireBackground({ intensity }) {
       ctx.fillStyle = groundGlow;
       ctx.fillRect(0, canvas.height - 300, canvas.width, 300);
 
-      // Sides vignette fire tint
       ["left", "right"].forEach(side => {
         const sx = side === "left" ? 0 : canvas.width;
         const ex = side === "left" ? canvas.width * 0.4 : canvas.width * 0.6;
@@ -243,7 +243,7 @@ function FireBackground({ intensity }) {
         width: "100vw",
         height: "100vh",
         pointerEvents: "none",
-        zIndex: 1,          // above Three.js (-3) and forest (0), below content (10)
+        zIndex: 1,
         opacity: intensity > 0 ? 1 : 0,
         transition: "opacity 1.4s ease",
       }}
@@ -256,21 +256,47 @@ export default function CharacterStory() {
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [scrollY, setScrollY] = useState(0);
   const [fireIntensity, setFireIntensity] = useState(0);
+  const [isReading, setIsReading] = useState(false);
+  const [currentSentence, setCurrentSentence] = useState(-1);
   const threeRef  = useRef(null);
   const scrollYRef = useRef(0);
   const particlesRef = useRef(null);
   const cameraRef = useRef(null);
+  const utteranceRef = useRef(null);
+
+  // Load voices when component mounts
+  useEffect(() => {
+    if (window.speechSynthesis) {
+      // Load voices
+      window.speechSynthesis.getVoices();
+      // Some browsers need this event
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }, []);
 
   const characters = {
     warrior: {
       name: "The Brave Warrior",
       accentColor: "#ef4444",
-      // Each paragraph = one screen
-      story: `Steel and determination carve his path through darkness.
+      story: `The darkness has consumed the ancient woods.
 
-Each scar tells a story of resilience.
+Shadow demons prowl between the trees, corrupting everything they touch.
 
-The forest trembles beneath his unwavering resolve.`,
+Your kingdom's survival depends on one warrior's courage.
+
+Slash through hordes of forest demons.
+
+Reclaim the sacred groves from evil's grasp.
+
+Master devastating combat techniques as you fight deeper into darkness.
+
+Your blade is the only light in an endless night.
+
+The fate of your people rests on your shoulders.
+
+Are you ready to become legend?`,
     },
   };
 
@@ -286,13 +312,10 @@ The forest trembles beneath his unwavering resolve.`,
       scrollYRef.current = sy;
       setScrollY(sy);
 
-      // viewportHeight = 1 section
       const vh = window.innerHeight;
-      // Fire kicks in during section 2 (character reveal) through section 4 (first story para)
-      // Section 1: 0–1vh  →  Section 2 (char): 1–2vh  →  Story: 2–Nvh
-      const fireStart = vh * 0.8;           // just before char section
-      const firePeak  = vh * 1.3;           // fully lit during char reveal
-      const fireEnd   = vh * 3.2;           // fades after second story para
+      const fireStart = vh * 0.8;
+      const firePeak  = vh * 1.3;
+      const fireEnd   = vh * 5.5; // Extended to cover more story paragraphs
 
       let intensity = 0;
       if (sy >= fireStart && sy < firePeak) {
@@ -361,6 +384,99 @@ The forest trembles beneath his unwavering resolve.`,
     };
   }, [selectedCharacter]);
 
+  // Text-to-Speech functionality
+  const readStory = () => {
+    if (!selectedCharacter || !window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel();
+
+    // Include title as first sentence, then story paragraphs
+    const allText = [selectedCharacter.name, ...selectedCharacter.story.split("\n\n")];
+    let sentenceIndex = 0;
+
+    const readNextSentence = () => {
+      if (sentenceIndex >= allText.length) {
+        setIsReading(false);
+        setCurrentSentence(-1);
+        return;
+      }
+
+      const text = allText[sentenceIndex];
+      const utterance = new SpeechSynthesisUtterance(text);
+      utteranceRef.current = utterance;
+
+      // Better voice settings for expressive female narration
+      utterance.rate = 1; // Slower for clarity and drama
+      utterance.pitch = 1.1; // Slightly higher for female voice
+      utterance.volume = 1;
+
+      // Try to get a better female voice (prioritize natural-sounding voices)
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(
+        (v) =>
+          v.name.includes("Google UK English Female"||
+  "Google UK English"||
+  "en-GB"|| // British English code
+  "Samantha" ||
+  "Female"||
+  "Google US English") 
+        
+      );
+      if (preferredVoice) {
+        utterance.voice = "Google UK English Female";
+      } else {
+        // Fallback: find any female voice
+        const anyFemaleVoice = voices.find(v => 
+          v.name.toLowerCase().includes("female") && v.lang.startsWith("en")
+        );
+        if (anyFemaleVoice) utterance.voice = anyFemaleVoice;
+      }
+
+      setCurrentSentence(sentenceIndex);
+
+      // Auto-scroll to current section
+      const scrollToSection = () => {
+        const vh = window.innerHeight;
+        // Title = section 0 (0vh)
+        // Character image = section 1 (1vh) - no text read here, just shown
+        // Story paragraphs = sections 2+ (2vh, 3vh, 4vh...)
+        let targetScroll = 0;
+        if (sentenceIndex === 0) {
+          // Title screen
+          targetScroll = 0;
+        } else {
+          // Story paragraphs (sentenceIndex 1 = first story para at 2vh)
+          targetScroll = vh * (sentenceIndex + 1);
+        }
+        window.scrollTo({ top: targetScroll, behavior: "smooth" });
+      };
+
+      scrollToSection();
+
+      utterance.onend = () => {
+        sentenceIndex++;
+        setTimeout(() => readNextSentence(), 1200); // Longer pause for comprehension
+      };
+
+      utterance.onerror = (e) => {
+        console.error("Speech error:", e);
+        setIsReading(false);
+        setCurrentSentence(-1);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    };
+
+    setIsReading(true);
+    readNextSentence();
+  };
+
+  const stopReading = () => {
+    window.speechSynthesis.cancel();
+    setIsReading(false);
+    setCurrentSentence(-1);
+  };
+
   if (!selectedCharacter) {
     return (
       <div className="flex items-center justify-center h-screen bg-black text-white">
@@ -381,10 +497,8 @@ The forest trembles beneath his unwavering resolve.`,
       {/* 🔥 Full-page fire background — fixed, scroll-driven intensity */}
       <FireBackground intensity={fireIntensity} />
 
-      {/* Forest parallax layers — all fixed full-screen, pure translateY parallax */}
+      {/* Forest parallax layers */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-
-        {/* BACK — sky, moon, stars. Slowest. Always fully visible. */}
         <img
           src="/forest-back.png" alt=""
           style={{
@@ -397,8 +511,6 @@ The forest trembles beneath his unwavering resolve.`,
             opacity: 1,
           }}
         />
-
-        {/* MID — pine tree silhouettes. Only bottom 60% so sky stays visible. */}
         <img
           src="/forest-mid.png" alt=""
           style={{
@@ -411,8 +523,6 @@ The forest trembles beneath his unwavering resolve.`,
             opacity: 1,
           }}
         />
-
-        {/* FRONT — thick close trunks. Only bottom 40% so trees frame the scene. */}
         <img
           src="/forest-front.png" alt=""
           style={{
@@ -425,20 +535,52 @@ The forest trembles beneath his unwavering resolve.`,
             opacity: 1,
           }}
         />
-
-        {/* Darken as user scrolls deeper */}
         <div
           style={{ opacity: Math.min(scrollY * 0.0008, 0.7) }}
           className="absolute inset-0 bg-black transition-opacity duration-300"
         />
       </div>
 
+      {/* Floating Read Aloud Button */}
+      <button
+        onClick={isReading ? stopReading : readStory}
+        className="fixed top-6 right-6 z-50 px-6 py-3 rounded-full font-bold text-white transition-all hover:scale-110 shadow-2xl"
+        style={{
+          backgroundColor: selectedCharacter.accentColor,
+          boxShadow: `0 0 30px ${selectedCharacter.accentColor}80`,
+        }}
+      >
+        {isReading ? (
+          <>
+            <span className="inline-block mr-2">⏸</span> Stop Reading
+          </>
+        ) : (
+          <>
+            <span className="inline-block mr-2">🔊</span> Read Story Aloud
+          </>
+        )}
+      </button>
+
       {/* Page content */}
       <div className="relative z-10">
 
         {/* Title screen */}
         <section className="h-screen flex items-center justify-center text-center px-6">
-          <h1 className="text-6xl font-bold">{selectedCharacter.name}</h1>
+          <h1 
+            className={`text-7xl md:text-8xl font-bold transition-all duration-500 ${
+              currentSentence === 0 ? "scale-110" : ""
+            }`}
+            style={{
+              borderColor: currentSentence === 0 ? selectedCharacter.accentColor : "transparent",
+              textShadow: currentSentence === 0 
+                ? `0 0 40px ${selectedCharacter.accentColor}, 0 0 80px ${selectedCharacter.accentColor}` 
+                : "0 0 20px rgba(239, 68, 68, 0.3)",
+              fontFamily: "'Cinzel Decorative', 'Uncial Antiqua', serif",
+              letterSpacing: "0.05em",
+            }}
+          >
+            {selectedCharacter.name}
+          </h1>
         </section>
 
         {/* Character reveal */}
@@ -448,8 +590,13 @@ The forest trembles beneath his unwavering resolve.`,
             alt="warrior"
             style={{
               opacity: characterVisible ? 1 : 0,
-              transform: `scale(${characterVisible ? 1 : 0.8})`,
+              transform: `scale(${characterVisible ? 1 : 0.8}) ${
+                currentSentence === 1 ? "scale(1.1)" : ""
+              }`,
               transition: "all 1.5s ease",
+              filter: currentSentence === 1 
+                ? `drop-shadow(0 0 40px ${selectedCharacter.accentColor})` 
+                : "none",
             }}
             className="w-96 drop-shadow-2xl"
           />
@@ -458,18 +605,53 @@ The forest trembles beneath his unwavering resolve.`,
         {/* Story paragraphs */}
         {paragraphs.map((para, i) => (
           <section key={i} className="h-screen flex items-center justify-center px-6">
-            <p className="max-w-3xl text-xl leading-relaxed bg-black/40 backdrop-blur-lg p-10 rounded-3xl border border-white/20">
+            <p
+              className={`max-w-4xl text-2xl md:text-3xl leading-relaxed bg-black/40 backdrop-blur-lg p-12 rounded-3xl transition-all duration-500 ${
+                currentSentence === i + 1 ? "border-4 scale-105" : "border border-white/20"
+              }`}
+              style={{
+                borderColor: currentSentence === i + 1 ? selectedCharacter.accentColor : undefined,
+                boxShadow: currentSentence === i + 1 ? `0 0 40px ${selectedCharacter.accentColor}80` : undefined,
+                fontFamily: "'Cinzel', 'Playfair Display', serif",
+              }}
+            >
               {para}
             </p>
           </section>
         ))}
 
-        {/* Back button */}
-        <section className="h-screen flex items-center justify-center">
+        {/* Call to Action */}
+        <section className="h-screen flex flex-col items-center justify-center px-6 gap-8">
+          <h2
+            className="text-5xl md:text-6xl font-bold mb-4"
+            style={{ 
+              color: selectedCharacter.accentColor,
+              textShadow: `0 0 20px ${selectedCharacter.accentColor}, 0 0 40px ${selectedCharacter.accentColor}`,
+              animation: "pulse 2s ease-in-out infinite",
+              fontFamily: "'Cinzel Decorative', 'Uncial Antiqua', serif",
+              letterSpacing: "0.03em",
+            }}
+          >
+            Your Quest Awaits
+          </h2>
+          <button
+            onClick={() => (window.location.href = "/game")}
+            className="px-16 py-6 text-white text-2xl font-bold rounded-full transition-all hover:scale-110 shadow-2xl"
+            style={{
+              backgroundColor: selectedCharacter.accentColor,
+              boxShadow: `0 0 50px ${selectedCharacter.accentColor}`,
+              fontFamily: "'Cinzel', serif",
+            }}
+          >
+            Begin Your Journey
+          </button>
           <button
             onClick={() => window.history.back()}
-            className="px-12 py-5 text-white text-lg font-bold rounded-full transition-all hover:scale-110"
-            style={{ backgroundColor: selectedCharacter.accentColor }}
+            className="px-12 py-4 text-white text-lg font-semibold rounded-full border-2 transition-all hover:scale-105"
+            style={{ 
+              borderColor: selectedCharacter.accentColor,
+              fontFamily: "'Cinzel', serif",
+            }}
           >
             Back to Characters
           </button>
