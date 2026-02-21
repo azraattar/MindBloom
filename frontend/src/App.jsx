@@ -20,6 +20,7 @@ import AddChild from "./pages/AddChild";
 
 import Signup from "./pages/Signup";
 import DyslexiaScreening from "./pages/DyslexiaScreening";
+import AddChild from "./pages/AddChildPage";
 
 function App() {
   // ✅ State
@@ -83,6 +84,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/dyslexia-screening" element={<DyslexiaScreening />} />
+      <Route path="/add-child" element={<AddChild />} />
 
       {/* 404 */}
       <Route

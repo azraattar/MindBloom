@@ -87,6 +87,7 @@ export default function Login() {
         setError("No account found. Please signup first.");
         return;
       }
+
       saveSession({
         uid: user.uid,
         email: user.email,
@@ -99,6 +100,7 @@ export default function Login() {
         provider: "google",
         parentId: data.id,
       });
+
       navigate("/add-child");
     } catch (err) {
       console.error(err);
