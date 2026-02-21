@@ -1,49 +1,133 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/AddChild.css";
+import { getSession } from "../services/session";
 
 export default function AddChild() {
+  const navigate = useNavigate();
+  const session = getSession();
+
+  /* ─────────────────────────
+     AUTH GUARD
+  ───────────────────────── */
+  useEffect(() => {
+    if (!session) {
+      console.warn("🚫 No session found. Redirecting to login.");
+      navigate("/login");
+    }
+  }, [session, navigate]);
+
+  if (!session) return null;
+
+  /* ─────────────────────────
+     DEBUG: SESSION INFO
+  ───────────────────────── */
+  console.log("🧠 FULL SESSION OBJECT:", session);
+  console.log("🆔 parentId being used:", session.parentId, typeof session.parentId);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [children, setChildren] = useState([]);
+  const [loadingChildren, setLoadingChildren] = useState(true);
+
   const [formData, setFormData] = useState({
     firstName: "",
     age: "",
     gender: "",
     isEnglishNative: null,
   });
-  const [isLoading, setIsLoading] = useState(false);
 
+  /* ─────────────────────────
+     FETCH CHILDREN
+  ───────────────────────── */
+  const fetchChildren = async () => {
+    try {
+      console.log("🚀 Fetching children for parentId:", session.parentId);
+
+      setLoadingChildren(true);
+
+      const url = `http://localhost:5000/api/get-children/${session.parentId}`;
+      console.log("🌐 Request URL:", url);
+
+      const res = await fetch(url);
+      console.log("📡 Response status:", res.status);
+
+      const data = await res.json();
+      console.log("📦 Raw children response:", data);
+
+      if (!res.ok) {
+        console.error("❌ Backend error:", data);
+        setChildren([]);
+        return;
+      }
+
+      if (!Array.isArray(data)) {
+        console.error("❌ Expected array, got:", data);
+        setChildren([]);
+        return;
+      }
+
+      console.log(`✅ ${data.length} child(ren) received`);
+      setChildren(data);
+    } catch (err) {
+      console.error("❌ Fetch children exception:", err);
+      setChildren([]);
+    } finally {
+      setLoadingChildren(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChildren();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ─────────────────────────
+     ADD CHILD
+  ───────────────────────── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
+    const payload = {
+      parent_id: session.parentId,
+      name: formData.firstName,
+      age: parseInt(formData.age, 10),
+      gender: formData.gender,
+      language: formData.isEnglishNative ? "english" : "other",
+    };
+
+    console.log("📤 Sending add-child payload:", payload);
+
     try {
-      const response = await fetch('http://localhost:5000/api/add-child', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Add auth token if using JWT
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          parent_identifier: localStorage.getItem('parent_email') ,
-          name: formData.firstName,
-          age: parseInt(formData.age),
-          gender: formData.gender,
-          language: formData.isEnglishNative === true ? 'english' : 'other'
-        })
+      const response = await fetch("http://localhost:5000/api/add-child", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
+      console.log("📡 Add-child status:", response.status);
+
       const result = await response.json();
-      
-      if (response.ok) {
-        alert('Child added successfully!');
-        setIsModalOpen(false);
-        setFormData({ firstName: "", age: "", gender: "", isEnglishNative: null });
-      } else {
-        throw new Error(result.error || 'Failed to add child');
+      console.log("📦 Add-child response:", result);
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to add child");
       }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error: ' + error.message);
+
+      alert("✅ Child added successfully!");
+      setIsModalOpen(false);
+      setFormData({
+        firstName: "",
+        age: "",
+        gender: "",
+        isEnglishNative: null,
+      });
+
+      fetchChildren(); // 🔁 refresh list
+    } catch (err) {
+      console.error("❌ Add child error:", err);
+      alert(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -53,174 +137,104 @@ export default function AddChild() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Rest of your JSX stays EXACTLY the same...
+  /* ─────────────────────────
+     UI
+  ───────────────────────── */
   return (
     <div className="add-child-page">
       {/* Header */}
       <header className="page-header">
         <div className="header-content">
-          <div className="logo-section">
-            <div className="logo-icon"></div>
-            <span className="brand-name">MindBloom</span>
-          </div>
-          <button
-            className="dashboard-link"
-            onClick={() => (window.location.href = "/parent-dashboard")}
-          >
+          <span className="brand-name">MindBloom</span>
+          <button onClick={() => navigate("/parent-dashboard")}>
             Parent Dashboard
           </button>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="main-content">
         <div className="content-container">
-          <div className="welcome-section">
-            <span className="status-badge">● ACTIVE SCREENING</span>
-            <h1 className="page-title">Manage Your Children</h1>
-            <p className="page-subtitle">
-              Add and monitor your children's learning progress and development
-              milestones.
-            </p>
+          <h1 className="page-title">Your Children</h1>
+          <p className="page-subtitle">
+            Logged in as <strong>{session.email}</strong>
+          </p>
+
+          {/* CHILD LIST */}
+          <div className="children-grid">
+            {loadingChildren ? (
+              <p>Loading children…</p>
+            ) : children.length === 0 ? (
+              <p>No children added yet.</p>
+            ) : (
+              children.map((child) => (
+                <div key={child.id} className="child-card">
+                  <div className="child-info">
+                    <h3>{child.name}</h3>
+                    <p>Age: {child.age}</p>
+                    <p>Gender: {child.gender}</p>
+                  </div>
+
+                  <button
+                    className="start-playing-btn"
+                    onClick={() =>
+                      navigate(`/Story-War`)
+                    }
+                  >
+                    Start Playing ▶
+                  </button>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Add Child Button */}
-          <button className="add-child-btn" onClick={() => setIsModalOpen(true)}>
-            <span className="btn-icon">+</span>
-            <span className="btn-text">Add Child</span>
+          <button
+            className="add-child-btn"
+            onClick={() => setIsModalOpen(true)}
+          >
+            + Add Child
           </button>
         </div>
       </main>
 
-      {/* Modal */}
+      {/* MODAL */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="modal-close"
-              onClick={() => setIsModalOpen(false)}
-            >
-              ×
-            </button>
+            <button className="modal-close">×</button>
 
-            <div className="modal-header">
-              <h2 className="modal-title">Add New Child</h2>
-              <p className="modal-subtitle">
-                Enter your child's information to begin their learning journey
-              </p>
-            </div>
+            <h2>Add New Child</h2>
 
             <form onSubmit={handleSubmit} className="child-form">
-              {/* First Name */}
-              <div className="form-group">
-                <label className="form-label">Child's First Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Enter first name"
-                  value={formData.firstName}
-                  onChange={(e) => handleChange("firstName", e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
+              <input
+                placeholder="Name"
+                value={formData.firstName}
+                onChange={(e) => handleChange("firstName", e.target.value)}
+                required
+              />
 
-              {/* Age */}
-              <div className="form-group">
-                <label className="form-label">Age</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="Enter age (e.g., 5)"
-                  min="3"
-                  max="12"
-                  value={formData.age}
-                  onChange={(e) => handleChange("age", e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
+              <input
+                type="number"
+                placeholder="Age"
+                value={formData.age}
+                onChange={(e) => handleChange("age", e.target.value)}
+                required
+              />
 
-              {/* Gender */}
-              <div className="form-group">
-                <label className="form-label">Gender</label>
-                <div className="radio-group">
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="male"
-                      checked={formData.gender === "male"}
-                      onChange={(e) => handleChange("gender", e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                    <span className="radio-custom"></span>
-                    <span className="radio-label">Male</span>
-                  </label>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="female"
-                      checked={formData.gender === "female"}
-                      onChange={(e) => handleChange("gender", e.target.value)}
-                      disabled={isLoading}
-                    />
-                    <span className="radio-custom"></span>
-                    <span className="radio-label">Female</span>
-                  </label>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="other"
-                      checked={formData.gender === "other"}
-                      onChange={(e) => handleChange("gender", e.target.value)}
-                      disabled={isLoading}
-                    />
-                    <span className="radio-custom"></span>
-                    <span className="radio-label">Other</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* English Native Language */}
-              <div className="form-group">
-                <label className="form-label">
-                  Is English their native language?
-                </label>
-                <div className="toggle-group">
-                  <button
-                    type="button"
-                    className={`toggle-btn ${
-                      formData.isEnglishNative === true ? "active" : ""
-                    }`}
-                    onClick={() => handleChange("isEnglishNative", true)}
-                    disabled={isLoading}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={`toggle-btn ${
-                      formData.isEnglishNative === false ? "active" : ""
-                    }`}
-                    onClick={() => handleChange("isEnglishNative", false)}
-                    disabled={isLoading}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button 
-                type="submit" 
-                className="submit-btn" 
-                disabled={isLoading}
+              <select
+                value={formData.gender}
+                onChange={(e) => handleChange("gender", e.target.value)}
+                required
               >
-                {isLoading ? 'Adding...' : 'Add Child'}
+                <option value="">Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+
+              <button type="submit" disabled={isLoading}>
+                {isLoading ? "Adding…" : "Add Child"}
               </button>
             </form>
           </div>

@@ -7,8 +7,9 @@ import GameSelect from "./pages/GameSelect";
 import GamePlay from "./pages/GamePlay";
 import GameResult from "./pages/GameResult";
 import Login from "./pages/Login";
-import CharacterSelection from "./pages/ChooseChar";
-import CharacterStory from "./pages/StoryPage";
+import GameLevelMap from "./pages/Levels"
+import NeutralStory from "./pages/StoryWar";
+import Level1 from "./pages/Level1"
 
 // Parent Pages
 import ParentLogin from "./pages/ParentLogin";
@@ -52,6 +53,8 @@ function App() {
       <Route path="/games" element={<GameSelect />} />
       <Route path="/play" element={<GamePlay />} />
       <Route path="/results" element={<GameResult />} />
+      <Route path="/levels" element={<GameLevelMap />} />
+      <Route path="/level1" element={<Level1 />} />
 
       {/* Parent Routes */}
       <Route path="/parent-login" element={<ParentLogin />} />
@@ -74,8 +77,9 @@ function App() {
 
       <Route path="/parent-chatbot" element={<ParentChatbot />} />
 
-      <Route path="/Choose-Character" element={<CharacterSelection />} />
-      <Route path="/Story-Page" element={<CharacterStory />} />
+      
+      <Route path="/Story-War" element={<NeutralStory />} />
+      {/* <Route path="/Story-Mage" element={<MageStory />} /> */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/dyslexia-screening" element={<DyslexiaScreening />} />
