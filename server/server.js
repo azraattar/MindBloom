@@ -60,9 +60,9 @@ function calculateAccuracy(history) {
 function ruleBasedLevel(accuracy) {
     console.log("🧠 Rule Engine Running | Accuracy:", accuracy);
     let level;
-    if (accuracy > 0.75)      level = Math.random() < 0.5 ? "hard" : "moderate";
+    if (accuracy > 0.75) level = Math.random() < 0.5 ? "hard" : "moderate";
     else if (accuracy > 0.45) level = Math.random() < 0.5 ? "moderate" : "easy";
-    else                      level = "easy";
+    else level = "easy";
     console.log("🎯 Rule Level Selected:", level);
     return level;
 }
@@ -110,12 +110,12 @@ async function chooseNextLevel(playerState) {
 // Routes
 // ─────────────────────────────────────────────
 
-// 🔹 Health Check
+//    Health Check
 app.get("/", (req, res) => {
     res.json({ status: "Backend running" });
 });
 
-// 🔹 Add Child
+//  Add Child
 app.post("/api/add-child", async (req, res) => {
     try {
         const { parent_id, name, age, gender, language } = req.body;
@@ -137,7 +137,7 @@ app.post("/api/add-child", async (req, res) => {
     }
 });
 
-// 🔹 Get Children by Parent ID
+//  Get Children by Parent ID
 app.get("/api/get-children/:parent_id", async (req, res) => {
     try {
         const { parent_id } = req.params;
@@ -156,7 +156,7 @@ app.get("/api/get-children/:parent_id", async (req, res) => {
     }
 });
 
-// 🔹 Get Daily Scores (simple)
+// Get Daily Scores (simple)
 app.get("/get-scores/:child_id", async (req, res) => {
     try {
         const { child_id } = req.params;
@@ -175,7 +175,7 @@ app.get("/get-scores/:child_id", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// 🔹 Parent Dashboard — full child data
+//    Parent Dashboard — full child data
 //    GET /api/dashboard/:child_id
 //    Returns everything the dashboard needs in one call
 // ─────────────────────────────────────────────
@@ -254,14 +254,14 @@ app.get("/api/dashboard/:child_id", async (req, res) => {
             return res.status(404).json({ error: "Child not found" });
         }
 
-        const scores   = scoresResult.data   || [];
-        const attempts = attemptsResult.data  || [];
-        const sessions = sessionsResult.data  || [];
-        const preds    = predictionsResult.data || [];
+        const scores = scoresResult.data || [];
+        const attempts = attemptsResult.data || [];
+        const sessions = sessionsResult.data || [];
+        const preds = predictionsResult.data || [];
 
         // ── Summary stats ─────────────────────────────────
         const latestPrediction = preds[0] ?? null;
-        const recentScores     = scores.slice(-7); // last 7 days for averages
+        const recentScores = scores.slice(-7); // last 7 days for averages
 
         const avg = (arr, key) => arr.length
             ? parseFloat((arr.reduce((s, r) => s + (r[key] ?? 0), 0) / arr.length).toFixed(1))
@@ -270,21 +270,21 @@ app.get("/api/dashboard/:child_id", async (req, res) => {
         // Improvement trend: compare first half vs second half of score history
         let improvementTrend = "not enough data";
         if (scores.length >= 4) {
-            const mid      = Math.floor(scores.length / 2);
+            const mid = Math.floor(scores.length / 2);
             const firstAvg = scores.slice(0, mid).reduce((s, r) => s + (r.overall_score ?? 0), 0) / mid;
-            const lastAvg  = scores.slice(mid).reduce((s, r)  => s + (r.overall_score ?? 0), 0) / (scores.length - mid);
+            const lastAvg = scores.slice(mid).reduce((s, r) => s + (r.overall_score ?? 0), 0) / (scores.length - mid);
             improvementTrend = lastAvg > firstAvg + 5 ? "improving"
-                             : lastAvg < firstAvg - 5 ? "declining"
-                             : "stable";
+                : lastAvg < firstAvg - 5 ? "declining"
+                    : "stable";
         }
 
         // Breakdown by game type (sound / mirror / memory)
         const gameBreakdown = attempts.reduce((acc, a) => {
             const t = a.game_type ?? "unknown";
             if (!acc[t]) acc[t] = { totalQuestions: 0, correctAnswers: 0, accuracy: 0, sessions: 0 };
-            acc[t].totalQuestions  += a.total_questions  ?? 0;
-            acc[t].correctAnswers  += a.correct_answers  ?? 0;
-            acc[t].sessions        += 1;
+            acc[t].totalQuestions += a.total_questions ?? 0;
+            acc[t].correctAnswers += a.correct_answers ?? 0;
+            acc[t].sessions += 1;
             return acc;
         }, {});
         Object.keys(gameBreakdown).forEach(t => {
@@ -302,28 +302,28 @@ app.get("/api/dashboard/:child_id", async (req, res) => {
 
             // Key numbers for the dashboard cards
             summary: {
-                totalDaysPlayed:   scores.length,
-                totalSessions:     sessions.length,
-                currentLevel:      progressResult.data?.current_level  ?? null,
-                lastScore:         progressResult.data?.last_score      ?? null,
-                latestRiskLevel:   latestPrediction?.predicted_level    ?? "Unknown",
-                latestConfidence:  latestPrediction?.confidence_score   ?? null,
-                avgOverallScore:   avg(recentScores, "overall_score"),
-                avgPhonological:   avg(recentScores, "phonological_score"),
-                avgReactionTime:   avg(recentScores, "reaction_time"),
+                totalDaysPlayed: scores.length,
+                totalSessions: sessions.length,
+                currentLevel: progressResult.data?.current_level ?? null,
+                lastScore: progressResult.data?.last_score ?? null,
+                latestRiskLevel: latestPrediction?.predicted_level ?? "Unknown",
+                latestConfidence: latestPrediction?.confidence_score ?? null,
+                avgOverallScore: avg(recentScores, "overall_score"),
+                avgPhonological: avg(recentScores, "phonological_score"),
+                avgReactionTime: avg(recentScores, "reaction_time"),
                 improvementTrend,
             },
 
             // Day-by-day for line charts
             scoreHistory: scores.map(s => ({
-                day:             s.day_number,
-                date:            s.created_at,
-                overall:         s.overall_score,
-                phonological:    s.phonological_score,
-                visual:          s.visual_score,
-                memory:          s.memory_score,
+                day: s.day_number,
+                date: s.created_at,
+                overall: s.overall_score,
+                phonological: s.phonological_score,
+                visual: s.visual_score,
+                memory: s.memory_score,
                 processingSpeed: s.processing_speed,
-                reactionTime:    s.reaction_time,
+                reactionTime: s.reaction_time,
             })),
 
             // Per game type stats (for bar charts / breakdown)
@@ -353,14 +353,14 @@ app.get("/api/dashboard/:child_id", async (req, res) => {
     }
 });
 
-// 🔹 Adaptive Next Question
+// Adaptive Next Question
 app.post("/game/next-question", async (req, res) => {
     try {
         console.log("\n🎮 GAME ENGINE START");
         const playerState = req.body;
         playerState.accuracy = calculateAccuracy(playerState.history);
-        const nextLevel  = await chooseNextLevel(playerState);
-        const question   = getWord(nextLevel);
+        const nextLevel = await chooseNextLevel(playerState);
+        const question = getWord(nextLevel);
         console.log("🎮 GAME ENGINE END\n");
         return res.json({ level: nextLevel, question });
     } catch (err) {
@@ -373,6 +373,7 @@ app.post("/game/next-question", async (req, res) => {
 // Start Server
 // ─────────────────────────────────────────────
 const PORT = process.env.PORT || 8000;
+
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });

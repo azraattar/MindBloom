@@ -42,7 +42,7 @@ export default function Login() {
         setError("User not found in database.");
         return;
       }
-      navigate("/games");
+      navigate("/add-child");
     } catch (err) {
       console.error(err);
       setError("Invalid email or password.");
