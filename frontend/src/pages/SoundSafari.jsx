@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../services/supabaseClient";
+import Swal from "sweetalert2";
 
 /* ══════════════════════════════════════════════════════
    STYLES
@@ -155,39 +156,39 @@ const styles = `
 `;
 
 const FIREFLIES = Array.from({ length: 12 }, (_, i) => ({
-  id:i, left:`${8+Math.random()*84}%`, top:`${8+Math.random()*84}%`,
-  dur:`${6+Math.random()*8}s`, dly:`${Math.random()*6}s`,
-  dx:`${(Math.random()-0.5)*80}px`, dy:`${(Math.random()-0.5)*80}px`,
-  dx2:`${(Math.random()-0.5)*120}px`, dy2:`${(Math.random()-0.5)*80}px`,
+  id: i, left: `${8 + Math.random() * 84}%`, top: `${8 + Math.random() * 84}%`,
+  dur: `${6 + Math.random() * 8}s`, dly: `${Math.random() * 6}s`,
+  dx: `${(Math.random() - 0.5) * 80}px`, dy: `${(Math.random() - 0.5) * 80}px`,
+  dx2: `${(Math.random() - 0.5) * 120}px`, dy2: `${(Math.random() - 0.5) * 80}px`,
 }));
 const OPT_FLOATS = [
-  {dur:"3.2s",dly:"0s"},{dur:"2.8s",dly:"0.4s"},
-  {dur:"3.6s",dly:"0.2s"},{dur:"2.5s",dly:"0.6s"},
+  { dur: "3.2s", dly: "0s" }, { dur: "2.8s", dly: "0.4s" },
+  { dur: "3.6s", dly: "0.2s" }, { dur: "2.5s", dly: "0.6s" },
 ];
 
 function GunSVG() {
   return (
-    <svg width="130" height="70" viewBox="0 0 130 70" style={{display:"block"}}>
-      <rect x="28" y="22" width="90" height="11" rx="3" fill="#7a5c14"/>
-      <rect x="55" y="20" width="61" height="4" rx="2" fill="#5c440f"/>
-      <rect x="34" y="13" width="68" height="19" rx="3.5" fill="#b8b8b8"/>
-      <rect x="34" y="13" width="68" height="19" rx="3.5" fill="none" stroke="#888" strokeWidth="1.2"/>
-      {[37,41,45,49].map(x=>(
-        <line key={x} x1={x} y1="15" x2={x} y2="31" stroke="#777" strokeWidth="1.8"/>
+    <svg width="130" height="70" viewBox="0 0 130 70" style={{ display: "block" }}>
+      <rect x="28" y="22" width="90" height="11" rx="3" fill="#7a5c14" />
+      <rect x="55" y="20" width="61" height="4" rx="2" fill="#5c440f" />
+      <rect x="34" y="13" width="68" height="19" rx="3.5" fill="#b8b8b8" />
+      <rect x="34" y="13" width="68" height="19" rx="3.5" fill="none" stroke="#888" strokeWidth="1.2" />
+      {[37, 41, 45, 49].map(x => (
+        <line key={x} x1={x} y1="15" x2={x} y2="31" stroke="#777" strokeWidth="1.8" />
       ))}
-      <rect x="56" y="15" width="16" height="6" rx="1.5" fill="#888" opacity="0.6"/>
-      <rect x="94" y="11" width="4" height="4" rx="1" fill="#555"/>
-      <rect x="37" y="11" width="4" height="4" rx="1" fill="#555"/>
-      <rect x="114" y="18" width="10" height="12" rx="2" fill="#999"/>
-      <circle cx="119" cy="24" r="3.5" fill="#222"/>
-      <path d="M44 32 Q48 48 62 48 L70 48 Q62 48 58 32Z" fill="#5c440f"/>
-      <rect x="38" y="32" width="23" height="27" rx="4" fill="#6b4a12"/>
-      <rect x="40" y="34" width="19" height="23" rx="3" fill="#8b6018"/>
-      {[37,41,45,49,53].map(y=>(
-        <line key={y} x1="41" y1={y} x2="58" y2={y} stroke="#6b4a12" strokeWidth="1.2"/>
+      <rect x="56" y="15" width="16" height="6" rx="1.5" fill="#888" opacity="0.6" />
+      <rect x="94" y="11" width="4" height="4" rx="1" fill="#555" />
+      <rect x="37" y="11" width="4" height="4" rx="1" fill="#555" />
+      <rect x="114" y="18" width="10" height="12" rx="2" fill="#999" />
+      <circle cx="119" cy="24" r="3.5" fill="#222" />
+      <path d="M44 32 Q48 48 62 48 L70 48 Q62 48 58 32Z" fill="#5c440f" />
+      <rect x="38" y="32" width="23" height="27" rx="4" fill="#6b4a12" />
+      <rect x="40" y="34" width="19" height="23" rx="3" fill="#8b6018" />
+      {[37, 41, 45, 49, 53].map(y => (
+        <line key={y} x1="41" y1={y} x2="58" y2={y} stroke="#6b4a12" strokeWidth="1.2" />
       ))}
-      <path d="M34 13 L29 8 L36 9 Z" fill="#999"/>
-      <rect x="51" y="35" width="4" height="10" rx="2" fill="#888"/>
+      <path d="M34 13 L29 8 L36 9 Z" fill="#999" />
+      <rect x="51" y="35" width="4" height="10" rx="2" fill="#888" />
     </svg>
   );
 }
@@ -198,41 +199,41 @@ function GunSVG() {
 export default function SoundSafari({ onComplete, childId }) {
 
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [currentWord, setCurrentWord]           = useState(null);
-  const [selectedOption, setSelectedOption]     = useState(null);
-  const [isCorrect, setIsCorrect]               = useState(null);
-  const [showFeedback, setShowFeedback]         = useState(false);
-  const [gameResults, setGameResults]           = useState([]);
-  const [isLoadingML, setIsLoadingML]           = useState(false);
-  const [childData, setChildData]               = useState(null);
-  const [aimedIdx, setAimedIdx]                 = useState(null);
-  const [bangIdx, setBangIdx]                   = useState(null);
-  const [flashPos, setFlashPos]                 = useState(null);
+  const [currentWord, setCurrentWord] = useState(null);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [isCorrect, setIsCorrect] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [gameResults, setGameResults] = useState([]);
+  const [isLoadingML, setIsLoadingML] = useState(false);
+  const [childData, setChildData] = useState(null);
+  const [aimedIdx, setAimedIdx] = useState(null);
+  const [bangIdx, setBangIdx] = useState(null);
+  const [flashPos, setFlashPos] = useState(null);
 
-  const xhairRingRef    = useRef(null);
-  const xhairDotRef     = useRef(null);
-  const gunWrapRef      = useRef(null);
-  const btnRefs         = useRef([null,null,null,null]);
-  const mousePosRef     = useRef({ x: window.innerWidth/2, y: window.innerHeight/2 });
-  const rafRef          = useRef(null);
+  const xhairRingRef = useRef(null);
+  const xhairDotRef = useRef(null);
+  const gunWrapRef = useRef(null);
+  const btnRefs = useRef([null, null, null, null]);
+  const mousePosRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+  const rafRef = useRef(null);
   const showFeedbackRef = useRef(false);
-  const aimedIdxRef     = useRef(null);
-  const currentWordRef  = useRef(null);
-  const gameResultsRef  = useRef([]);
+  const aimedIdxRef = useRef(null);
+  const currentWordRef = useRef(null);
+  const gameResultsRef = useRef([]);
 
   const questionStartTimeRef = useRef(Date.now());
-  const reactionTimesRef     = useRef([]);
+  const reactionTimesRef = useRef([]);
 
   useEffect(() => { showFeedbackRef.current = showFeedback; }, [showFeedback]);
-  useEffect(() => { gameResultsRef.current  = gameResults;  }, [gameResults]);
+  useEffect(() => { gameResultsRef.current = gameResults; }, [gameResults]);
 
   /* ── GAME DATA ── */
   const level1Words = [
-    { word:"said",  options:["sed","sad","said","sid"],         level:"easy"     },
-    { word:"was",   options:["was","waz","wus","vas"],          level:"easy"     },
-    { word:"have",  options:["hav","have","haf","hev"],         level:"easy"     },
-    { word:"what",  options:["what","wot","wut","hwat"],        level:"moderate" },
-    { word:"come",  options:["kum","come","com","coom"],        level:"moderate" },
+    { word: "said", options: ["sed", "sad", "said", "sid"], level: "easy" },
+    { word: "was", options: ["was", "waz", "wus", "vas"], level: "easy" },
+    { word: "have", options: ["hav", "have", "haf", "hev"], level: "easy" },
+    { word: "what", options: ["what", "wot", "wut", "hwat"], level: "moderate" },
+    { word: "come", options: ["kum", "come", "com", "coom"], level: "moderate" },
   ];
 
   useEffect(() => {
@@ -241,7 +242,7 @@ export default function SoundSafari({ onComplete, childId }) {
   }, []);
 
   const progress = (currentWordIndex / level1Words.length) * 100;
-  const isLast   = currentWordIndex === level1Words.length - 1;
+  const isLast = currentWordIndex === level1Words.length - 1;
 
   useEffect(() => { currentWordRef.current = currentWord; }, [currentWord]);
   useEffect(() => { questionStartTimeRef.current = Date.now(); }, [currentWordIndex]);
@@ -297,17 +298,17 @@ export default function SoundSafari({ onComplete, childId }) {
 
     const tick = () => {
       const { x: mx, y: my } = mousePosRef.current;
-      const pivot    = getPivot();
+      const pivot = getPivot();
       const rawAngle = Math.atan2(my - pivot.y, mx - pivot.x) * (180 / Math.PI);
-      const angle    = Math.max(-75, Math.min(5, rawAngle));
+      const angle = Math.max(-75, Math.min(5, rawAngle));
 
       if (xhairRingRef.current) { xhairRingRef.current.style.left = `${mx}px`; xhairRingRef.current.style.top = `${my}px`; }
-      if (xhairDotRef.current)  { xhairDotRef.current.style.left  = `${mx}px`; xhairDotRef.current.style.top  = `${my}px`; }
+      if (xhairDotRef.current) { xhairDotRef.current.style.left = `${mx}px`; xhairDotRef.current.style.top = `${my}px`; }
       if (gunWrapRef.current) {
-        gunWrapRef.current.style.left            = `${pivot.x - BARREL_TIP_X}px`;
-        gunWrapRef.current.style.top             = `${pivot.y - BARREL_TIP_Y}px`;
+        gunWrapRef.current.style.left = `${pivot.x - BARREL_TIP_X}px`;
+        gunWrapRef.current.style.top = `${pivot.y - BARREL_TIP_Y}px`;
         gunWrapRef.current.style.transformOrigin = `${BARREL_TIP_X}px ${BARREL_TIP_Y}px`;
-        gunWrapRef.current.style.transform       = `rotate(${angle}deg)`;
+        gunWrapRef.current.style.transform = `rotate(${angle}deg)`;
       }
 
       if (!showFeedbackRef.current) {
@@ -336,10 +337,10 @@ export default function SoundSafari({ onComplete, childId }) {
     const onDown = () => {
       if (showFeedbackRef.current) return;
 
-      const pivot      = { x: window.innerWidth / 2, y: window.innerHeight - 70 };
-      const rawAngle   = Math.atan2(mousePosRef.current.y - pivot.y, mousePosRef.current.x - pivot.x) * (180/Math.PI);
-      const angle      = Math.max(-75, Math.min(5, rawAngle));
-      const rad        = angle * Math.PI / 180;
+      const pivot = { x: window.innerWidth / 2, y: window.innerHeight - 70 };
+      const rawAngle = Math.atan2(mousePosRef.current.y - pivot.y, mousePosRef.current.x - pivot.x) * (180 / Math.PI);
+      const angle = Math.max(-75, Math.min(5, rawAngle));
+      const rad = angle * Math.PI / 180;
       setFlashPos({ x: pivot.x + Math.cos(rad) * 90, y: pivot.y + Math.sin(rad) * 90 });
       setTimeout(() => setFlashPos(null), 220);
 
@@ -349,7 +350,7 @@ export default function SoundSafari({ onComplete, childId }) {
         reactionTimesRef.current = [...reactionTimesRef.current, elapsed];
         console.log(`🕐 [REACTION] Word "${currentWordRef.current.word}" answered in ${elapsed}ms`);
 
-        const opt     = currentWordRef.current.options[idx];
+        const opt = currentWordRef.current.options[idx];
         const correct = opt === currentWordRef.current.word;
         console.log(`🎯 [ANSWER] word="${currentWordRef.current.word}" selected="${opt}" correct=${correct}`);
 
@@ -388,29 +389,29 @@ export default function SoundSafari({ onComplete, childId }) {
     }
     console.log("🔑 [SAVE] child UUID:", cId);
     // ── STEP 0: ensure level 1 exists in levels table ──
-console.log("\n── STEP 0: levels table ──");
-const { error: levelErr } = await supabase
-  .from("levels")
-  .upsert(
-    { id: 1, mirror_difficulty: "easy", sound_difficulty: "easy", memory_card_count: 4 },
-    { onConflict: "id" } // if row already exists, do nothing
-  );
+    console.log("\n── STEP 0: levels table ──");
+    const { error: levelErr } = await supabase
+      .from("levels")
+      .upsert(
+        { id: 1, mirror_difficulty: "easy", sound_difficulty: "easy", memory_card_count: 4 },
+        { onConflict: "id" } // if row already exists, do nothing
+      );
 
-if (levelErr) {
-  console.error("❌ [levels] FAILED:", levelErr.message);
-  return; // can't continue without this
-}
-console.log("✅ [levels] row 1 ready");
+    if (levelErr) {
+      console.error("❌ [levels] FAILED:", levelErr.message);
+      return; // can't continue without this
+    }
+    console.log("✅ [levels] row 1 ready");
     // ── Derived stats ────────────────────────────────────
     const totalQuestions = r.length;
     const correctAnswers = r.filter(x => x.correct).length;
-    const wrongAnswers   = totalQuestions - correctAnswers;
-    const accuracy       = parseFloat((correctAnswers / totalQuestions).toFixed(4));
+    const wrongAnswers = totalQuestions - correctAnswers;
+    const accuracy = parseFloat((correctAnswers / totalQuestions).toFixed(4));
 
-    const weights         = { easy: 1, moderate: 1.5, hard: 2 };
+    const weights = { easy: 1, moderate: 1.5, hard: 2 };
     const weightedCorrect = r.reduce((sum, x) => sum + (x.correct ? weights[x.level] : 0), 0);
-    const weightedTotal   = r.reduce((sum, x) => sum + weights[x.level], 0);
-    const overallScore    = parseFloat(((weightedCorrect / weightedTotal) * 100).toFixed(2));
+    const weightedTotal = r.reduce((sum, x) => sum + weights[x.level], 0);
+    const overallScore = parseFloat(((weightedCorrect / weightedTotal) * 100).toFixed(2));
     const phonologicalScore = parseFloat((accuracy * 100).toFixed(2));
 
     const times = reactionTimesRef.current;
@@ -420,7 +421,7 @@ console.log("✅ [levels] row 1 ready");
 
     const riskMap = { low: "Mild", medium: "Moderate", high: "Severe" };
     const rl = mlResult?.risk_level?.toLowerCase() ?? "";
-const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") ? "Moderate" : "Mild";
+    const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") ? "Moderate" : "Mild";
 
     console.log("📐 [STATS] totalQuestions:", totalQuestions);
     console.log("📐 [STATS] correctAnswers:", correctAnswers, "| wrongAnswers:", wrongAnswers);
@@ -432,9 +433,9 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
     // ── STEP 1: game_sessions ────────────────────────────
     console.log("\n── STEP 1: game_sessions ──");
     const gameSessionPayload = {
-      child_id:          cId,
-      level_played:      1,
-      overall_score:     overallScore,
+      child_id: cId,
+      level_played: 1,
+      overall_score: overallScore,
       avg_response_time: avgReactionTime,
     };
     console.log("📤 [game_sessions] inserting:", gameSessionPayload);
@@ -460,12 +461,12 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
     // ── STEP 2: game_attempts ────────────────────────────
     console.log("\n── STEP 2: game_attempts ──");
     const gameAttemptPayload = {
-      session_id:        sessionId,
-      game_type:         "sound",
-      total_questions:   totalQuestions,
-      correct_answers:   correctAnswers,
-      wrong_answers:     wrongAnswers,
-      accuracy:          accuracy,
+      session_id: sessionId,
+      game_type: "sound",
+      total_questions: totalQuestions,
+      correct_answers: correctAnswers,
+      wrong_answers: wrongAnswers,
+      accuracy: accuracy,
       avg_response_time: avgReactionTime,
     };
     console.log("📤 [game_attempts] inserting:", gameAttemptPayload);
@@ -488,10 +489,10 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
     // ── STEP 3: child_daily_scores ───────────────────────
     console.log("\n── STEP 3: child_daily_scores ──");
     const { data: existingDays, error: daysErr } = await supabase
-  .from("child_daily_scores")
-  .select("day_number")
-  .order("day_number", { ascending: false })
-  .limit(1);
+      .from("child_daily_scores")
+      .select("day_number")
+      .order("day_number", { ascending: false })
+      .limit(1);
 
     if (daysErr) {
       console.warn("⚠️ [child_daily_scores] Failed to fetch existing days:", daysErr.message);
@@ -502,11 +503,11 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
     console.log("📅 [child_daily_scores] using day_number:", dayNumber);
 
     const dailyScoresPayload = {
-      child_id:           cId,
-      day_number:         dayNumber,
+      child_id: cId,
+      day_number: dayNumber,
       phonological_score: phonologicalScore,
-      overall_score:      overallScore,
-      reaction_time:      avgReactionTime,
+      overall_score: overallScore,
+      reaction_time: avgReactionTime,
     };
     console.log("📤 [child_daily_scores] inserting:", dailyScoresPayload);
 
@@ -528,9 +529,9 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
     // ── STEP 4: predictions ──────────────────────────────
     console.log("\n── STEP 4: predictions ──");
     const predictionsPayload = {
-      child_id:         cId,
-      phoneme_score:    phonologicalScore,
-      predicted_level:  predictedLevel,
+      child_id: cId,
+      phoneme_score: phonologicalScore,
+      predicted_level: predictedLevel,
       confidence_score: parseFloat(mlResult?.confidence) || null,
     };
     console.log("📤 [predictions] inserting:", predictionsPayload);
@@ -620,37 +621,37 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
     const byLevel = (lvl, chk) => r.filter(x => x.level === lvl && (chk === undefined ? true : x.correct === chk));
 
     const mlData = {
-      Age:       childData.age || 7,
-      Gender:    childData.gender === "male" ? 0 : 1,
+      Age: childData.age || 7,
+      Gender: childData.gender === "male" ? 0 : 1,
       Nativelang: childData.language === "english" ? 1 : 0,
-      Otherlang:  childData.language === "english" ? 0 : 1,
-      Clicks1:  byLevel("easy").length,
-      Hits1:    byLevel("easy",   true).length,
-      Misses1:  byLevel("easy",  false).length,
-      Score1:   byLevel("easy",   true).length * 10,
-      Accuracy1: byLevel("easy",  true).length  / (byLevel("easy").length  || 1),
-      Missrate1: byLevel("easy", false).length  / (byLevel("easy").length  || 1),
-      Clicks2:  byLevel("moderate").length,
-      Hits2:    byLevel("moderate",   true).length,
-      Misses2:  byLevel("moderate",  false).length,
-      Score2:   byLevel("moderate",   true).length * 10,
-      Accuracy2: byLevel("moderate",  true).length  / (byLevel("moderate").length  || 1),
-      Missrate2: byLevel("moderate", false).length  / (byLevel("moderate").length  || 1),
-      Clicks3:  byLevel("hard").length,
-      Hits3:    byLevel("hard",   true).length,
-      Misses3:  byLevel("hard",  false).length,
-      Score3:   byLevel("hard",   true).length * 10,
-      Accuracy3: byLevel("hard",  true).length  / (byLevel("hard").length  || 1),
-      Missrate3: byLevel("hard", false).length  / (byLevel("hard").length  || 1),
+      Otherlang: childData.language === "english" ? 0 : 1,
+      Clicks1: byLevel("easy").length,
+      Hits1: byLevel("easy", true).length,
+      Misses1: byLevel("easy", false).length,
+      Score1: byLevel("easy", true).length * 10,
+      Accuracy1: byLevel("easy", true).length / (byLevel("easy").length || 1),
+      Missrate1: byLevel("easy", false).length / (byLevel("easy").length || 1),
+      Clicks2: byLevel("moderate").length,
+      Hits2: byLevel("moderate", true).length,
+      Misses2: byLevel("moderate", false).length,
+      Score2: byLevel("moderate", true).length * 10,
+      Accuracy2: byLevel("moderate", true).length / (byLevel("moderate").length || 1),
+      Missrate2: byLevel("moderate", false).length / (byLevel("moderate").length || 1),
+      Clicks3: byLevel("hard").length,
+      Hits3: byLevel("hard", true).length,
+      Misses3: byLevel("hard", false).length,
+      Score3: byLevel("hard", true).length * 10,
+      Accuracy3: byLevel("hard", true).length / (byLevel("hard").length || 1),
+      Missrate3: byLevel("hard", false).length / (byLevel("hard").length || 1),
     };
 
     console.log("📤 [ML] sending mlData:", mlData);
 
     try {
       const res = await fetch("/predict", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(mlData),
+        body: JSON.stringify(mlData),
       });
 
       console.log("📥 [ML] response status:", res.status, res.statusText);
@@ -666,12 +667,18 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
 
       await saveAllToSupabase(r, mlResult);
 
-      alert(
-        `🧠 Dyslexia Screening Result\n\n` +
-        `Risk:       ${mlResult.dyslexia_risk_percentage}%\n` +
-        `Level:      ${mlResult.risk_level}\n` +
-        `Confidence: ${mlResult.confidence}%`
-      );
+      Swal.fire({
+        title: "🎉 Congratulations!",
+        html: `
+    <b>Welcome to Level Two</b> <br/><br/>
+    You have successfully completed Level One.
+    Get ready for the next challenge!
+  `,
+        icon: "success",
+        confirmButtonText: "Start Level 2"
+      });
+
+
       onComplete?.();
 
     } catch (err) {
@@ -705,7 +712,7 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
   };
 
   if (!currentWord) {
-    return <div style={{ color:"white", padding:40, fontFamily:"Nunito, sans-serif" }}>Loading Safari...</div>;
+    return <div style={{ color: "white", padding: 40, fontFamily: "Nunito, sans-serif" }}>Loading Safari...</div>;
   }
 
   /* ══════════ RENDER ══════════ */
@@ -714,10 +721,10 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
       <style>{styles}</style>
 
       <div className="gun-layer">
-        {flashPos && <div className="muzzle-flash" style={{ left:flashPos.x, top:flashPos.y }} />}
-        <div ref={xhairRingRef} className="xhair-ring" style={{ left:"-100px", top:"-100px" }} />
-        <div ref={xhairDotRef}  className="xhair-dot"  style={{ left:"-100px", top:"-100px" }} />
-        <div ref={gunWrapRef} style={{ position:"absolute", left:0, top:0, filter:"drop-shadow(0 6px 14px rgba(0,0,0,0.8))" }}>
+        {flashPos && <div className="muzzle-flash" style={{ left: flashPos.x, top: flashPos.y }} />}
+        <div ref={xhairRingRef} className="xhair-ring" style={{ left: "-100px", top: "-100px" }} />
+        <div ref={xhairDotRef} className="xhair-dot" style={{ left: "-100px", top: "-100px" }} />
+        <div ref={gunWrapRef} style={{ position: "absolute", left: 0, top: 0, filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.8))" }}>
           <GunSVG />
         </div>
       </div>
@@ -732,32 +739,34 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
 
         {FIREFLIES.map(f => (
           <div key={f.id} className="firefly"
-            style={{ left:f.left, top:f.top, "--dur":f.dur, "--dly":f.dly,
-                     "--dx":f.dx, "--dy":f.dy, "--dx2":f.dx2, "--dy2":f.dy2 }} />
+            style={{
+              left: f.left, top: f.top, "--dur": f.dur, "--dly": f.dly,
+              "--dx": f.dx, "--dy": f.dy, "--dx2": f.dx2, "--dy2": f.dy2
+            }} />
         ))}
 
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
           <h2 className="safari-header">🦁 Sound Safari</h2>
           <span className="child-tag">🧒 {childData?.name || "Loading…"} · {childData?.age || "—"}yr</span>
         </div>
 
-        <div style={{ marginBottom:22 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-            <span style={{ color:"#7ab860", fontSize:"0.82rem" }}>
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ color: "#7ab860", fontSize: "0.82rem" }}>
               Word {currentWordIndex + 1} of {level1Words.length}
             </span>
             <span className={`level-badge level-${currentWord?.level}`}>{currentWord?.level}</span>
           </div>
           <div className="vine-track">
-            <div className="vine-fill" style={{ width:`${progress}%` }} />
+            <div className="vine-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
-        <div style={{ borderTop:"1px solid rgba(100,210,80,0.12)", marginBottom:22 }} />
+        <div style={{ borderTop: "1px solid rgba(100,210,80,0.12)", marginBottom: 22 }} />
 
-        <div style={{ textAlign:"center", marginBottom:10 }}>
-          <p style={{ color:"#8dc87a", fontSize:"0.88rem", margin:"0 0 12px" }}>
-            🎧 Listen — move your <strong style={{color:"#f5e642"}}>crosshair</strong> over the correct spelling and <strong style={{color:"#f5e642"}}>click</strong> to shoot!
+        <div style={{ textAlign: "center", marginBottom: 10 }}>
+          <p style={{ color: "#8dc87a", fontSize: "0.88rem", margin: "0 0 12px" }}>
+            🎧 Listen — move your <strong style={{ color: "#f5e642" }}>crosshair</strong> over the correct spelling and <strong style={{ color: "#f5e642" }}>click</strong> to shoot!
           </p>
           <button className="play-btn" onClick={playWordAgain}>🔊 Play Again</button>
         </div>
@@ -766,7 +775,7 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
           {currentWord.options.map((o, i) => {
             let cls = "";
             if (showFeedback) {
-              if (o === currentWord.word)    cls = "correct";
+              if (o === currentWord.word) cls = "correct";
               else if (o === selectedOption) cls = "wrong";
             } else if (aimedIdx === i) {
               cls = "aimed";
@@ -776,7 +785,7 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
                 key={o}
                 ref={el => btnRefs.current[i] = el}
                 className={`option-btn ${cls}`}
-                style={{ "--opt-dur":OPT_FLOATS[i].dur, "--opt-dly":OPT_FLOATS[i].dly }}
+                style={{ "--opt-dur": OPT_FLOATS[i].dur, "--opt-dly": OPT_FLOATS[i].dly }}
                 disabled={showFeedback}
               >
                 {o}
@@ -792,7 +801,7 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
 
         {showFeedback && (
           <div className="feedback-banner">
-            <p style={{ fontSize:"1.8rem", margin:"0 0 12px", fontFamily:"'Fredoka One',cursive" }}>
+            <p style={{ fontSize: "1.8rem", margin: "0 0 12px", fontFamily: "'Fredoka One',cursive" }}>
               {isCorrect ? "🎯 Bullseye!" : "❌ Missed! Keep going!"}
             </p>
             <button className="next-btn" onClick={nextWord} disabled={isLoadingML}>
@@ -801,7 +810,7 @@ const predictedLevel = rl.includes("high") ? "Severe" : rl.includes("moderate") 
           </div>
         )}
 
-        <div style={{ height:110 }} />
+        <div style={{ height: 110 }} />
       </div>
     </>
   );

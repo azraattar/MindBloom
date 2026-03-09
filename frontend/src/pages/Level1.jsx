@@ -20,7 +20,7 @@ export default function Level1({ childId, onLevelComplete }) {
       id: 2,
       name: "Sound Safari",
       component: <SoundSafari onComplete={() => next(15)} />
-     }
+    }
     // {
     //   id: 3,
     //   name: "Memory Quest",

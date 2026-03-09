@@ -134,6 +134,7 @@ def predict():
         return jsonify({"error": str(e)}), 500
 
 
+#check all routes
 @app.route("/routes", methods=["GET"])
 def list_routes():
     return jsonify([str(rule) for rule in app.url_map.iter_rules()])
